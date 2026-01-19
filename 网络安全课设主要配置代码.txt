@@ -1,0 +1,303 @@
+Router6
+
+version 12.4
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+hostname Router
+no ip cef
+no ipv6 cef
+vpdn enable
+vpdn-group 1
+ accept-dialin
+  protocol pppoe
+  virtual-template 1
+username vpn_use password 123456
+username vpn_user password 123456
+crypto isakmp policy 10
+ encr 3des
+ authentication pre-share
+ group 2
+crypto isakmp key cisco address 0.0.0.0 0.0.0.0
+crypto isakmp key cisco address 11.1.1.2
+crypto isakmp key cisco address 11.1.2.2
+crypto isakmp key cisco address 11.1.3.2
+crypto isakmp client configuration group VPN_GROUP
+ key cisco
+ pool VPN_POLL
+crypto ipsec transform-set ccnp esp-3des esp-sha-hmac
+crypto map vpn-map 10 ipsec-isakmp 
+ set peer 11.1.3.2
+ set transform-set ccnp 
+ match address 101
+crypto map vpn-map 20 ipsec-isakmp 
+ set peer 11.1.2.2
+ set transform-set ccnp 
+ match address 103
+crypto map vpn-map 30 ipsec-isakmp 
+ set peer 11.1.1.2
+ set transform-set ccnp 
+ match address 104
+crypto map vpn-map 40 ipsec-isakmp 
+ set peer 0.0.0.0
+ match address 105
+spanning-tree mode pvst
+bba-group pppoe global
+  virtual-template 1
+interface Virtual-Template1
+interface FastEthernet0/0
+ ip address 192.168.1.254 255.255.255.0
+ ip nat inside
+ duplex auto
+ speed auto
+interface FastEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+interface Serial0/0/0
+ no ip address
+ clock rate 2000000
+ shutdown
+interface Serial0/0/1
+ ip address 110.1.6.1 255.255.255.0
+ ip nat outside
+ clock rate 2000000
+ crypto map vpn-map
+interface Vlan1
+ no ip address
+ shutdown
+ip local pool VPN_POOL 192.168.1.100 192.168.1.200
+ip nat inside source list 100 interface Serial0/0/1 overload
+ip nat inside source static tcp 192.168.1.2 80 110.1.6.1 80 
+ip nat inside source static tcp 192.168.1.2 443 110.1.6.1 443 
+ip classless
+ip route 0.0.0.0 0.0.0.0 110.1.6.2 
+ip flow-export version 9
+access-list 100 deny ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+access-list 100 deny ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+access-list 100 deny ip 192.168.1.0 0.0.0.255 192.168.4.0 0.0.0.255
+access-list 100 deny ip 192.168.1.0 0.0.0.255 192.168.5.0 0.0.0.255
+access-list 100 permit ip any any
+access-list 101 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+access-list 102 permit ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+access-list 103 permit ip 192.168.1.0 0.0.0.255 192.168.4.0 0.0.0.255
+access-list 104 permit ip 192.168.1.0 0.0.0.255 192.168.5.0 0.0.0.255
+access-list 105 permit ip 192.168.1.0 0.0.0.255 host 202.1.1.1
+line con 0
+line aux 0
+line vty 0 4
+ login
+
+Router10
+
+version 12.4
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+hostname Router
+no ip cef
+no ipv6 cef
+crypto isakmp policy 10
+ encr 3des
+ authentication pre-share
+ group 2
+crypto isakmp key cisco address 110.1.6.1
+crypto ipsec transform-set ccnp esp-3des esp-sha-hmac
+crypto map vpn-map 10 ipsec-isakmp 
+ set peer 110.1.6.1
+ set transform-set ccnp 
+ match address 101
+spanning-tree mode pvst
+interface FastEthernet0/0
+ ip address 192.168.3.254 255.255.255.0
+ ip nat inside
+ duplex auto
+ speed auto
+interface FastEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+interface Serial0/0/0
+ ip address 11.1.3.2 255.255.255.0
+ ip nat outside
+ clock rate 2000000
+ crypto map vpn-map
+interface Serial0/0/1
+ ip address 12.1.1.1 255.255.255.0
+ ip nat outside
+interface Vlan1
+ no ip address
+ shutdown
+router ospf 1
+ router-id 2.2.2.2
+ log-adjacency-changes
+ network 11.1.3.0 0.0.0.255 area 0
+ network 192.168.3.0 0.0.0.255 area 0
+ip nat inside source list 100 interface Serial0/0/0 overload
+ip nat inside source static tcp 192.168.3.3 80 11.1.3.2 80 
+ip nat inside source static tcp 192.168.3.3 443 11.1.3.2 443 
+ip classless
+ip route 110.1.0.0 255.255.0.0 11.1.3.1 
+ip route 11.1.2.0 255.255.255.0 12.1.1.2 
+ip route 11.1.1.0 255.255.255.0 12.1.1.2 
+ip route 23.1.1.0 255.255.255.0 12.1.1.2 
+ip route 45.1.1.0 255.255.255.0 12.1.1.2 
+ip route 34.1.1.0 255.255.255.0 12.1.1.2 
+ip route 0.0.0.0 0.0.0.0 11.1.3.1 
+ip flow-export version 9
+access-list 100 deny ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+access-list 100 deny ip 192.168.3.0 0.0.0.255 192.168.2.0 0.0.0.255
+access-list 100 deny ip 192.168.3.0 0.0.0.255 192.168.4.0 0.0.0.255
+access-list 100 deny ip 192.168.3.0 0.0.0.255 192.168.5.0 0.0.0.255
+access-list 100 permit ip any any
+access-list 101 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+line con 0
+line aux 0
+line vty 0 4
+ login
+
+Router1
+
+version 12.4
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+hostname Router
+no ip cef
+no ipv6 cef
+crypto isakmp policy 10
+ encr 3des
+ authentication pre-share
+ group 2
+crypto isakmp key cisco address 110.1.6.1
+crypto ipsec transform-set ccnp esp-3des esp-sha-hmac
+crypto map vpn-map 10 ipsec-isakmp 
+ set peer 110.1.6.1
+ set transform-set ccnp 
+ match address 101
+spanning-tree mode pvst
+interface FastEthernet0/0
+ ip address 192.168.4.254 255.255.255.0
+ ip nat inside
+ duplex auto
+ speed auto
+interface FastEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+interface Serial0/0/0
+ ip address 11.1.2.2 255.255.255.0
+ ip nat outside
+ crypto map vpn-map
+interface Serial0/0/1
+ ip address 23.1.1.2 255.255.255.0
+ ip nat outside
+ clock rate 2000000
+interface Serial0/1/0
+ ip address 34.1.1.1 255.255.255.0
+ ip nat outside
+interface Serial0/1/1
+ no ip address
+ clock rate 2000000
+ shutdown
+interface Vlan1
+ no ip address
+ shutdown
+router ospf 1
+ router-id 3.3.3.3
+ log-adjacency-changes
+ network 110.1.4.0 0.0.0.255 area 0
+ network 192.168.4.0 0.0.0.255 area 0
+ip nat inside source list 100 interface Serial0/0/0 overload
+ip nat inside source static tcp 192.168.4.3 80 11.1.2.2 80 
+ip nat inside source static tcp 192.168.4.3 443 11.1.2.2 443 
+ip classless
+ip route 110.1.0.0 255.255.0.0 11.1.2.1 
+ip route 11.1.3.0 255.255.255.0 23.1.1.1 
+ip route 11.1.1.0 255.255.255.0 34.1.1.2 
+ip route 12.1.1.0 255.255.255.0 23.1.1.1 
+ip route 45.1.1.0 255.255.255.0 34.1.1.2 
+ip route 0.0.0.0 0.0.0.0 11.1.2.1 
+ip flow-export version 9
+access-list 100 deny ip 192.168.4.0 0.0.0.255 192.168.1.0 0.0.0.255
+access-list 100 deny ip 192.168.4.0 0.0.0.255 192.168.2.0 0.0.0.255
+access-list 100 deny ip 192.168.4.0 0.0.0.255 192.168.3.0 0.0.0.255
+access-list 100 deny ip 192.168.4.0 0.0.0.255 192.168.5.0 0.0.0.255
+access-list 100 permit ip any any
+access-list 101 permit ip 192.168.4.0 0.0.0.255 192.168.1.0 0.0.0.255
+line con 0
+line aux 0
+line vty 0 4
+ login
+
+Router8
+
+version 12.4
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+hostname Router
+no ip cef
+no ipv6 cef
+crypto isakmp policy 10
+ encr 3des
+ authentication pre-share
+ group 2
+crypto isakmp key cisco address 110.1.6.1
+crypto ipsec transform-set ccnp esp-3des esp-sha-hmac
+crypto map vpn-map 10 ipsec-isakmp 
+ set peer 110.1.6.1
+ set transform-set ccnp 
+ match address 101
+spanning-tree mode pvst
+interface FastEthernet0/0
+ ip address 192.168.5.254 255.255.255.0
+ ip nat inside
+ duplex auto
+ speed auto
+interface FastEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+interface Serial0/0/0
+ ip address 11.1.1.2 255.255.255.0
+ ip nat outside
+ crypto map vpn-map
+interface Serial0/0/1
+ ip address 45.1.1.5 255.255.255.0
+ ip nat outside
+ clock rate 2000000
+interface Vlan1
+ no ip address
+ shutdown
+router ospf 1
+ router-id 4.4.4.4
+ log-adjacency-changes
+ network 110.1.5.0 0.0.0.255 area 0
+ network 192.168.5.0 0.0.0.255 area 0
+ip nat inside source list 100 interface Serial0/0/0 overload
+ip nat inside source static tcp 192.168.5.3 80 11.1.1.2 80 
+ip nat inside source static tcp 192.168.5.3 443 11.1.1.2 443 
+ip classless
+ip route 11.1.2.0 255.255.255.0 45.1.1.1 
+ip route 11.1.3.0 255.255.255.0 45.1.1.1 
+ip route 110.1.0.0 255.255.0.0 11.1.1.1 
+ip route 34.1.1.0 255.255.255.0 45.1.1.1 
+ip route 23.1.1.0 255.255.255.0 45.1.1.1 
+ip route 12.1.1.0 255.255.255.0 45.1.1.1 
+ip route 0.0.0.0 0.0.0.0 11.1.1.1 
+ip flow-export version 9
+access-list 100 deny ip 192.168.5.0 0.0.0.255 192.168.1.0 0.0.0.255
+access-list 100 deny ip 192.168.5.0 0.0.0.255 192.168.2.0 0.0.0.255
+access-list 100 deny ip 192.168.5.0 0.0.0.255 192.168.3.0 0.0.0.255
+access-list 100 deny ip 192.168.5.0 0.0.0.255 192.168.4.0 0.0.0.255
+access-list 100 permit ip any any
+access-list 101 permit ip 192.168.5.0 0.0.0.255 192.168.1.0 0.0.0.255
+line con 0
+line aux 0
+line vty 0 4
+ login
